@@ -7,14 +7,13 @@
 import sys
 import os
 import sqlite3
-# import urllib3
 from functools import partial
 
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog, QLabel, QTableWidgetItem, QLabel, QSizePolicy
 from PyQt5.QtCore import QSize, Qt
 
-from UI.MainWindow import Ui_MainWindow
+from datatool.interface.MainWindow import Ui_MainWindow
 
 #---------------------------------------------------------------------------------------------------
 
@@ -140,13 +139,5 @@ class App(QMainWindow):
                     self.db.commit()
                     self.db.close()
             sys.exit()
-
-#---------------------------------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = App()
-    window.show()
-    sys.exit(app.exec_())
 
 #---------------------------------------------------------------------------------------------------
