@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #---------------------------------------------------------------------------------------------------
 # Author: Will Fenton
 # Date:   May 17 2019
@@ -51,28 +50,18 @@ class App(QMainWindow):
     def loadDatabase(self):
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getOpenFileName(self, "Load Database", "", "All Files (*);;Database Files (*.db)", options=options)
-        try:
-            if os.path.isfile(fileName):
-                if os.path.getsize(fileName) > 100:
-                    with open(fileName,"r", encoding="ISO-8859-1") as file:
-                        header = file.read(100)
-                        if header.startswith("SQLite format 3"):
-                            self.db = sqlite3.connect(fileName)
-                            self.connected_to_database = True
-                            QMessageBox.information(self, "Success", "Successfully connected to the database", QMessageBox.Ok)
+        if os.path.isfile(fileName):
+            if os.path.getsize(fileName) > 100:
+                with open(fileName,"r", encoding="ISO-8859-1") as file:
+                    header = file.read(100)
+                    if header.startswith("SQLite format 3"):
+                        self.db = sqlite3.connect(fileName)
+                        self.connected_to_database = True
+                        QMessageBox.information(self, "Success", "Successfully connected to the database", QMessageBox.Ok)
 
-                            self.loadTopAlbumsTable()
-                            self.loadTopSongsTable()
-                            self.loadTopArtistsTable()
-
-                        else:
-                            raise Exception("wrong file format")
-                else:
-                    raise Exception("path too large")
-            else:
-                raise Exception("file doesn't exist")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error: {e}", QMessageBox.Ok)
+                        self.loadTopAlbumsTable()
+                        self.loadTopSongsTable()
+                        self.loadTopArtistsTable()
 
     
     def loadTopAlbumsTable(self):

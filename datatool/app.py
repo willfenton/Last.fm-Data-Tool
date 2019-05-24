@@ -2,16 +2,20 @@
 #------------------------------------------------------------
 
 import sys
+from datatool.data.setup import setup
 from datatool.interface.GUI import App
 from PyQt5.QtWidgets import QApplication
 
 #------------------------------------------------------------
 
 def run():
-    app = QApplication(sys.argv)
-    window = App()
-    window.show()
-    sys.exit(app.exec_())
+
+    setup()
+
+    # app = QApplication(sys.argv)
+    # window = App()
+    # window.show()
+    # sys.exit(app.exec_())
     
 #------------------------------------------------------------
 
