@@ -10,12 +10,14 @@ from PyQt5.QtWidgets import QApplication
 
 def run():
 
+    # verify project structure is correct, create config file, etc.
     setup()
 
-    # app = QApplication(sys.argv)
-    # window = App()
-    # window.show()
-    # sys.exit(app.exec_())
+    # run the application
+    app = QApplication(sys.argv)
+    window = App()
+    window.show()
+    sys.exit(app.exec_())
     
 #------------------------------------------------------------
 

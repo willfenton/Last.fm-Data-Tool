@@ -7,6 +7,7 @@ import sys
 import os
 import sqlite3
 from functools import partial
+from configparser import ConfigParser, ExtendedInterpolation
 
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog, QLabel, QTableWidgetItem, QLabel, QSizePolicy
@@ -23,6 +24,21 @@ class App(QMainWindow):
         self.ask_before_quit = False
 
         self.connected_to_database = False
+
+        # get path to config file
+        package_path = os.path.dirname(sys.modules['__main__'].__file__)
+        project_path = os.path.abspath(os.path.join(package_path, os.pardir))
+        config_path = os.path.join(project_path, "config.ini")
+
+        # open config file
+        self.config = ConfigParser(interpolation=ExtendedInterpolation())
+
+        # validate existing config
+        if os.path.exists(config_path):
+            self.config.read(config_path)
+        else:
+            print("Error: no config file")
+            sys.exit(1)
 
         # Set up the user interface from Designer.
         self.ui = Ui_MainWindow()
