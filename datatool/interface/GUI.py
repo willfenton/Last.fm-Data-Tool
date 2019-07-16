@@ -10,10 +10,11 @@ from functools import partial
 from configparser import ConfigParser, ExtendedInterpolation
 
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog, QLabel, QTableWidgetItem, QLabel, QSizePolicy
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog, QLabel, QTableWidgetItem, QLabel, QSizePolicy, QHeaderView
 from PyQt5.QtCore import QSize, Qt
 
 from datatool.interface.MainWindow import Ui_MainWindow
+from datatool.data.db_functions import get_config
 
 #---------------------------------------------------------------------------------------------------
 
@@ -25,29 +26,16 @@ class App(QMainWindow):
 
         self.connected_to_database = False
 
-        # get path to config file
-        package_path = os.path.dirname(sys.modules['__main__'].__file__)
-        project_path = os.path.abspath(os.path.join(package_path, os.pardir))
-        config_path = os.path.join(project_path, "config.ini")
-
-        # open config file
-        self.config = ConfigParser(interpolation=ExtendedInterpolation())
-
-        # validate existing config
-        if os.path.exists(config_path):
-            self.config.read(config_path)
-        else:
-            print("Error: no config file")
-            sys.exit(1)
-
         # Set up the user interface from Designer.
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
         # setup top table headers
-        self.ui.topAlbumsTableWidget.setHorizontalHeaderLabels(["Album", "Artist", "Plays"])
-        self.ui.topSongsTableWidget.setHorizontalHeaderLabels(["Song", "Artist", "Album", "Plays"])
+        self.ui.topAlbumsTableWidget.setHorizontalHeaderLabels(["", "Album", "Artist", "Plays"])
+        self.ui.topSongsTableWidget.setHorizontalHeaderLabels(["", "Song", "Artist", "Album", "Plays"])
         self.ui.topArtistsTableWidget.setHorizontalHeaderLabels(["Artist", "Plays"])
+
+        self.changePage(0)
 
         # Connect the buttons.
         self.ui.albumsPageButton.clicked.connect(partial(self.changePage, 0))
@@ -57,6 +45,17 @@ class App(QMainWindow):
         # Connect menubar actions
         self.ui.actionQuit.triggered.connect(self.closeApplication)
         self.ui.actionLoad_Database.triggered.connect(self.loadDatabase)
+
+        # get config parser
+        self.config_parser = get_config()
+        db_path = self.config_parser.get("db", "db_path")
+        self.db = sqlite3.connect(db_path)
+
+        self.connected_to_database = True
+
+        self.loadTopAlbumsTable()
+        self.loadTopSongsTable()
+        self.loadTopArtistsTable()
 
 
     def changePage(self, page):
@@ -81,31 +80,38 @@ class App(QMainWindow):
 
     
     def loadTopAlbumsTable(self):
-        rows = self.db.execute("SELECT album_name, artist_name, COUNT(*) FROM 'user-willfenton14' GROUP BY album_name, artist_name ORDER BY COUNT(*) DESC;").fetchall()
+        rows = self.db.execute("SELECT album_name, artist_name, COUNT(*), image_path FROM 'user-willfenton14' GROUP BY album_name, artist_name, image_path ORDER BY COUNT(*) DESC;").fetchall()
         self.ui.topAlbumsTableWidget.setRowCount(len(rows))
 
-        # http = urllib3.PoolManager()
+        self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+
+        self.ui.topAlbumsTableWidget.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
         for i in range(len(rows)):
-            self.ui.topAlbumsTableWidget.setItem(i, 0, QTableWidgetItem(str(rows[i][0])))
-            self.ui.topAlbumsTableWidget.setItem(i, 1, QTableWidgetItem(str(rows[i][1])))
-            self.ui.topAlbumsTableWidget.setItem(i, 2, QTableWidgetItem(""))
-            self.ui.topAlbumsTableWidget.item(i, 2).setData(Qt.DisplayRole, int(rows[i][2]))
+            self.ui.topAlbumsTableWidget.setItem(i, 1, QTableWidgetItem(str(rows[i][0])))
+            self.ui.topAlbumsTableWidget.setItem(i, 2, QTableWidgetItem(str(rows[i][1])))
+            self.ui.topAlbumsTableWidget.setItem(i, 3, QTableWidgetItem(""))
+            self.ui.topAlbumsTableWidget.item(i, 3).setData(Qt.DisplayRole, int(rows[i][2]))
 
-            # image = http.request("GET", rows[i][2]).data
+            pixmap = QPixmap(rows[i][3])
 
-            # pixmap = QPixmap()
-            # pixmap.loadFromData(image)
+            label = QLabel()
+            label.setPixmap(pixmap.scaled(QSize(150, 150)))
 
-            # label = QLabel()
-            # label.setPixmap(pixmap.scaled(QSize(150, 150)))
-
-            # self.ui.topAlbumsTableWidget.setCellWidget(i, 0, label)
+            self.ui.topAlbumsTableWidget.setCellWidget(i, 0, label)
 
     
     def loadTopArtistsTable(self):
         rows = self.db.execute("SELECT artist_name, COUNT(*) FROM 'user-willfenton14' GROUP BY artist_name ORDER BY COUNT(*) DESC;").fetchall()
         self.ui.topArtistsTableWidget.setRowCount(len(rows))
+
+        self.ui.topArtistsTableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.ui.topArtistsTableWidget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+
+        self.ui.topArtistsTableWidget.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         for i in range(len(rows)):
             self.ui.topArtistsTableWidget.setItem(i, 0, QTableWidgetItem(str(rows[i][0])))
@@ -114,15 +120,30 @@ class App(QMainWindow):
 
     
     def loadTopSongsTable(self):
-        rows = self.db.execute("SELECT track_name, album_name, artist_name, COUNT(*) FROM 'user-willfenton14' GROUP BY track_name, album_name, artist_name ORDER BY COUNT(*) DESC;").fetchall()
+        rows = self.db.execute("SELECT track_name, album_name, artist_name, COUNT(*), image_path FROM 'user-willfenton14' GROUP BY track_name, album_name, artist_name, image_path ORDER BY COUNT(*) DESC;").fetchall()
         self.ui.topSongsTableWidget.setRowCount(len(rows))
 
+        self.ui.topSongsTableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.ui.topSongsTableWidget.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.ui.topSongsTableWidget.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.ui.topSongsTableWidget.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        self.ui.topSongsTableWidget.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
+
+        self.ui.topSongsTableWidget.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
         for i in range(len(rows)):
-            self.ui.topSongsTableWidget.setItem(i, 0, QTableWidgetItem(str(rows[i][0])))
-            self.ui.topSongsTableWidget.setItem(i, 1, QTableWidgetItem(str(rows[i][1])))
-            self.ui.topSongsTableWidget.setItem(i, 2, QTableWidgetItem(str(rows[i][2])))
-            self.ui.topSongsTableWidget.setItem(i, 3, QTableWidgetItem(""))
-            self.ui.topSongsTableWidget.item(i, 3).setData(Qt.DisplayRole, int(rows[i][3]))
+            self.ui.topSongsTableWidget.setItem(i, 1, QTableWidgetItem(str(rows[i][0])))
+            self.ui.topSongsTableWidget.setItem(i, 2, QTableWidgetItem(str(rows[i][1])))
+            self.ui.topSongsTableWidget.setItem(i, 3, QTableWidgetItem(str(rows[i][2])))
+            self.ui.topSongsTableWidget.setItem(i, 4, QTableWidgetItem(""))
+            self.ui.topSongsTableWidget.item(i, 4).setData(Qt.DisplayRole, int(rows[i][3]))
+
+            pixmap = QPixmap(rows[i][4])
+
+            label = QLabel()
+            label.setPixmap(pixmap.scaled(QSize(150, 150)))
+
+            self.ui.topSongsTableWidget.setCellWidget(i, 0, label)
 
     # This is triggered when the user clicks the X / close button
     def closeEvent(self, event):      

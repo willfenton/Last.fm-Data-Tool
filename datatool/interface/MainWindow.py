@@ -34,7 +34,7 @@ class Ui_MainWindow(object):
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.topAlbumsTableWidget = QtWidgets.QTableWidget(self.albumsPage)
         self.topAlbumsTableWidget.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
-        self.topAlbumsTableWidget.setColumnCount(3)
+        self.topAlbumsTableWidget.setColumnCount(4)
         self.topAlbumsTableWidget.setObjectName("topAlbumsTableWidget")
         self.topAlbumsTableWidget.setRowCount(0)
         self.topAlbumsTableWidget.horizontalHeader().setHighlightSections(False)
@@ -50,7 +50,7 @@ class Ui_MainWindow(object):
         self.gridLayout_3.setObjectName("gridLayout_3")
         self.topSongsTableWidget = QtWidgets.QTableWidget(self.songsPage)
         self.topSongsTableWidget.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
-        self.topSongsTableWidget.setColumnCount(4)
+        self.topSongsTableWidget.setColumnCount(5)
         self.topSongsTableWidget.setObjectName("topSongsTableWidget")
         self.topSongsTableWidget.setRowCount(0)
         self.topSongsTableWidget.horizontalHeader().setHighlightSections(False)
@@ -99,7 +99,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.topTables.setCurrentIndex(2)
+        self.topTables.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):

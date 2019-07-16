@@ -26,7 +26,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="1" column="3">
-     <layout class="QGridLayout" name="gridLayout_4" rowstretch="0,0,0,0" columnstretch="0,0,0,0">
+     <layout class="QGridLayout" name="gridLayout_4" rowstretch="0,0" columnstretch="0,0,0">
       <property name="spacing">
        <number>3</number>
       </property>
@@ -36,7 +36,7 @@
          <number>1</number>
         </property>
         <property name="currentIndex">
-         <number>2</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="albumsPage">
          <property name="autoFillBackground">
@@ -52,7 +52,7 @@
              <bool>true</bool>
             </property>
             <property name="columnCount">
-             <number>3</number>
+             <number>4</number>
             </property>
             <attribute name="horizontalHeaderHighlightSections">
              <bool>false</bool>
@@ -72,6 +72,7 @@
             <column/>
             <column/>
             <column/>
+            <column/>
            </widget>
           </item>
          </layout>
@@ -87,7 +88,7 @@
              <bool>true</bool>
             </property>
             <property name="columnCount">
-             <number>4</number>
+             <number>5</number>
             </property>
             <attribute name="horizontalHeaderHighlightSections">
              <bool>false</bool>
@@ -95,6 +96,7 @@
             <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
              <bool>true</bool>
             </attribute>
+            <column/>
             <column/>
             <column/>
             <column/>

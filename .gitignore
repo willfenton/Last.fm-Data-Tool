@@ -155,6 +155,7 @@ pip-selfcheck.json
 
 olddata/
 data/
+temp/
 apikey.txt
 API_Details.png
 config.ini
