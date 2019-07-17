@@ -6,15 +6,17 @@
 import sys
 import os
 import sqlite3
+from math import floor, sqrt
 from functools import partial
 from configparser import ConfigParser, ExtendedInterpolation
 
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog, QLabel, QTableWidgetItem, QLabel, QSizePolicy, QHeaderView
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog, QLabel, QTableWidgetItem, QLabel, QSizePolicy, QHeaderView, QInputDialog, QLineEdit
 from PyQt5.QtCore import QSize, Qt
 
 from datatool.interface.MainWindow import Ui_MainWindow
-from datatool.data.db_functions import get_config
+from datatool.data.db_functions import get_config, validate_username, add_user, delete_user, update_data
+from datatool.data.collage import generate_collage
 
 #---------------------------------------------------------------------------------------------------
 
@@ -23,8 +25,6 @@ class App(QMainWindow):
         super(App, self).__init__()
 
         self.ask_before_quit = False
-
-        self.connected_to_database = False
 
         # Set up the user interface from Designer.
         self.ui = Ui_MainWindow()
@@ -44,43 +44,117 @@ class App(QMainWindow):
 
         # Connect menubar actions
         self.ui.actionQuit.triggered.connect(self.closeApplication)
-        self.ui.actionLoad_Database.triggered.connect(self.loadDatabase)
-
+        self.ui.actionAdd_User.triggered.connect(self.addUser)
+        self.ui.actionChange_User.triggered.connect(self.changeUser)
+        self.ui.actionDelete_User.triggered.connect(self.deleteUser)
+        self.ui.actionUpdate_Data.triggered.connect(self.updateData)
+        self.ui.actionGenerate_Collage.triggered.connect(self.generateCollage)
+        
         # get config parser
         self.config_parser = get_config()
+
+        # get db
         db_path = self.config_parser.get("db", "db_path")
         self.db = sqlite3.connect(db_path)
 
-        self.connected_to_database = True
+        # get last.fm api key
+        self.api_key = self.config_parser.get("settings", "api_key")
 
-        self.loadTopAlbumsTable()
-        self.loadTopSongsTable()
-        self.loadTopArtistsTable()
+        users = [row[0] for row in self.db.execute("SELECT DISTINCT username FROM Users ORDER BY timestamp ASC;")]
+        if len(users) > 0:
+            self.current_user = users[0]
+        else:
+            self.current_user = None
+
+        self.refreshTables()
 
 
     def changePage(self, page):
         self.ui.topTables.setCurrentIndex(page)
 
 
-    def loadDatabase(self):
-        options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getOpenFileName(self, "Load Database", "", "All Files (*);;Database Files (*.db)", options=options)
-        if os.path.isfile(fileName):
-            if os.path.getsize(fileName) > 100:
-                with open(fileName,"r", encoding="ISO-8859-1") as file:
-                    header = file.read(100)
-                    if header.startswith("SQLite format 3"):
-                        self.db = sqlite3.connect(fileName)
-                        self.connected_to_database = True
-                        QMessageBox.information(self, "Success", "Successfully connected to the database", QMessageBox.Ok)
+    def addUser(self):
+        username, ok = QInputDialog.getText(self, "Add user","Last.fm username:", QLineEdit.Normal, "")
+        username = username.lower()
+        if ok and username != "":
+            if validate_username(username, self.api_key):
+                if add_user(self.db, username, self.api_key):
+                    QMessageBox.information(self, "Success", f"Added user:\n{username}", QMessageBox.Ok)
+                    if self.current_user is None:
+                        self.current_user = username
+                else:
+                    QMessageBox.critical(self, "Error", f"Error adding user:\n{username}", QMessageBox.Ok)
+            else:
+                QMessageBox.warning (self, "Warning", f"Invalid username:\n{username}", QMessageBox.Ok)
 
-                        self.loadTopAlbumsTable()
-                        self.loadTopSongsTable()
-                        self.loadTopArtistsTable()
+
+    def changeUser(self):
+        users = [row[0] for row in self.db.execute("SELECT DISTINCT username FROM Users ORDER BY timestamp ASC;")]	
+        if len(users) > 0:
+            index = users.index(self.current_user) if self.current_user is not None else 0
+            username, ok = QInputDialog.getItem(self, "Change user", "List of users", users, index, False) 
+            if ok and username:
+                self.current_user = username
+                QMessageBox.information(self, "Changed user", f"Current user:\n{self.current_user}", QMessageBox.Ok)
+        else:
+            QMessageBox.information(self, "No users", "No users to select from.", QMessageBox.Ok)
+        self.refreshTables()
+
+
+    def deleteUser(self):
+        users = [row[0] for row in self.db.execute("SELECT DISTINCT username FROM Users ORDER BY timestamp ASC;")]	
+        if len(users) > 0:
+            username, ok = QInputDialog.getItem(self, "Delete user", "List of users", users, 0, False) 
+            if ok and username:
+                if delete_user(self.db, username, self.api_key):
+                    if self.current_user == username:
+                        self.current_user = None
+                    QMessageBox.information(self, "Deleted user", f"Deleted user:\n{username}", QMessageBox.Ok)
+                else:
+                    QMessageBox.critical(self, "Error", f"Error deleting user:\n{username}", QMessageBox.Ok)
+        else:
+            QMessageBox.information(self, "No users", "No users to select from.", QMessageBox.Ok)
+
+    
+    def updateData(self):
+        users = [row[0] for row in self.db.execute("SELECT DISTINCT username FROM Users ORDER BY timestamp ASC;")]	
+        if len(users) > 0:
+            username, ok = QInputDialog.getItem(self, "Update data", "List of users", users, 0, False) 
+            if ok and username:
+                update_data(self.db, username, self.api_key)
+                QMessageBox.information(self, "Updated data", f"Updated data for user:\n{username}", QMessageBox.Ok)
+        else:
+            QMessageBox.information(self, "No users", "No users to select from.", QMessageBox.Ok)
+        self.refreshTables()
+
+    
+    def generateCollage(self):
+        if self.current_user is None:
+            QMessageBox.information(self, "No current user", "Select a user first.", QMessageBox.Ok)
+            return False
+        num_albums = int(self.db.execute(f"SELECT COUNT(*) FROM (SELECT album_name, artist_name FROM [user-{self.current_user}] GROUP BY album_name, artist_name);").fetchone()[0])
+        if num_albums < 1:
+            QMessageBox.information(self, "Not enough albums", "Not enough albums. Have you updated data yet?", QMessageBox.Ok)
+            return False
+        max_size = min(floor(sqrt(num_albums)), 50)
+        size, okPressed = QInputDialog.getInt(self, "Collage size","Size:", 10, 1, max_size, 1)
+        if okPressed and (size ** 2) <= num_albums:
+            users_path = self.config_parser.get("files", "users_path")
+            generate_collage(self.db, self.current_user, size, size, users_path)
+            QMessageBox.information(self, "Collage generated", "Collage successfully generated.", QMessageBox.Ok)
+
+
+    def refreshTables(self):
+        self.loadTopAlbumsTable()
+        self.loadTopArtistsTable()
+        self.loadTopSongsTable()
 
     
     def loadTopAlbumsTable(self):
-        rows = self.db.execute("SELECT album_name, artist_name, COUNT(*), image_path FROM 'user-willfenton14' GROUP BY album_name, artist_name, image_path ORDER BY COUNT(*) DESC;").fetchall()
+        if self.current_user is None:
+            return False
+
+        rows = self.db.execute(f"SELECT album_name, artist_name, COUNT(*), image_path FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path ORDER BY COUNT(*) DESC LIMIT 100;").fetchall()
         self.ui.topAlbumsTableWidget.setRowCount(len(rows))
 
         self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -105,7 +179,10 @@ class App(QMainWindow):
 
     
     def loadTopArtistsTable(self):
-        rows = self.db.execute("SELECT artist_name, COUNT(*) FROM 'user-willfenton14' GROUP BY artist_name ORDER BY COUNT(*) DESC;").fetchall()
+        if self.current_user is None:
+            return False
+
+        rows = self.db.execute(f"SELECT artist_name, COUNT(*) FROM 'user-{self.current_user}' GROUP BY artist_name ORDER BY COUNT(*) DESC;").fetchall()
         self.ui.topArtistsTableWidget.setRowCount(len(rows))
 
         self.ui.topArtistsTableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -120,7 +197,10 @@ class App(QMainWindow):
 
     
     def loadTopSongsTable(self):
-        rows = self.db.execute("SELECT track_name, album_name, artist_name, COUNT(*), image_path FROM 'user-willfenton14' GROUP BY track_name, album_name, artist_name, image_path ORDER BY COUNT(*) DESC;").fetchall()
+        if self.current_user is None:
+            return False
+
+        rows = self.db.execute(f"SELECT track_name, album_name, artist_name, COUNT(*), image_path FROM 'user-{self.current_user}' GROUP BY track_name, album_name, artist_name, image_path ORDER BY COUNT(*) DESC LIMIT 100;").fetchall()
         self.ui.topSongsTableWidget.setRowCount(len(rows))
 
         self.ui.topSongsTableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -156,14 +236,10 @@ class App(QMainWindow):
         if self.ask_before_quit:
             choice = QMessageBox.question(self, "Quit", "Do you really want to exit?", QMessageBox.Yes | QMessageBox.No)
             if choice == QMessageBox.Yes:
-                if self.connected_to_database:
-                    self.db.commit()
-                    self.db.close()
+                self.db.close()
                 sys.exit()
         else:
-            if self.connected_to_database:
-                    self.db.commit()
-                    self.db.close()
+            self.db.close()
             sys.exit()
 
 #---------------------------------------------------------------------------------------------------

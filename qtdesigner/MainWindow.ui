@@ -168,9 +168,25 @@
      <string>File</string>
     </property>
     <addaction name="actionQuit"/>
-    <addaction name="actionLoad_Database"/>
+   </widget>
+   <widget class="QMenu" name="menuUser">
+    <property name="title">
+     <string>User</string>
+    </property>
+    <addaction name="actionAdd_User"/>
+    <addaction name="actionChange_User"/>
+    <addaction name="actionDelete_User"/>
+    <addaction name="actionUpdate_Data"/>
+   </widget>
+   <widget class="QMenu" name="menuData">
+    <property name="title">
+     <string>Stats</string>
+    </property>
+    <addaction name="actionGenerate_Collage"/>
    </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuUser"/>
+   <addaction name="menuData"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionQuit">
@@ -187,6 +203,31 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionAdd_User">
+   <property name="text">
+    <string>Add User</string>
+   </property>
+  </action>
+  <action name="actionChange_User">
+   <property name="text">
+    <string>Change User</string>
+   </property>
+  </action>
+  <action name="actionDelete_User">
+   <property name="text">
+    <string>Delete User</string>
+   </property>
+  </action>
+  <action name="actionUpdate_Data">
+   <property name="text">
+    <string>Update Data</string>
+   </property>
+  </action>
+  <action name="actionGenerate_Collage">
+   <property name="text">
+    <string>Generate Collage</string>
    </property>
   </action>
  </widget>
