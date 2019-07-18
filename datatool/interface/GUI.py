@@ -1,6 +1,9 @@
 #---------------------------------------------------------------------------------------------------
 # Author: Will Fenton
 # Date:   May 17 2019
+
+# This is the actual PyQt application
+# Implements the functionality for the UI compiled from QT designer
 #---------------------------------------------------------------------------------------------------
 
 import sys
@@ -139,8 +142,7 @@ class App(QMainWindow):
         max_size = min(floor(sqrt(num_albums)), 50)
         size, okPressed = QInputDialog.getInt(self, "Collage size","Size:", 10, 1, max_size, 1)
         if okPressed and (size ** 2) <= num_albums:
-            users_path = self.config_parser.get("files", "users_path")
-            generate_collage(self.db, self.current_user, size, size, users_path)
+            generate_collage(self.db, self.current_user, size, size)
             QMessageBox.information(self, "Collage generated", "Collage successfully generated.", QMessageBox.Ok)
 
 
@@ -224,6 +226,7 @@ class App(QMainWindow):
             label.setPixmap(pixmap.scaled(QSize(150, 150)))
 
             self.ui.topSongsTableWidget.setCellWidget(i, 0, label)
+
 
     # This is triggered when the user clicks the X / close button
     def closeEvent(self, event):      

@@ -43,6 +43,9 @@ class Ui_MainWindow(object):
         self.topAlbumsTableWidget.verticalHeader().setSortIndicatorShown(False)
         self.topAlbumsTableWidget.verticalHeader().setStretchLastSection(False)
         self.gridLayout_2.addWidget(self.topAlbumsTableWidget, 1, 0, 1, 3)
+        self.pushButton = QtWidgets.QPushButton(self.albumsPage)
+        self.pushButton.setObjectName("pushButton")
+        self.gridLayout_2.addWidget(self.pushButton, 2, 0, 1, 3)
         self.topTables.addWidget(self.albumsPage)
         self.songsPage = QtWidgets.QWidget()
         self.songsPage.setObjectName("songsPage")
@@ -119,13 +122,14 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuData.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.topTables.setCurrentIndex(1)
+        self.topTables.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Last.fm Data Tool"))
         self.topAlbumsTableWidget.setSortingEnabled(True)
+        self.pushButton.setText(_translate("MainWindow", "PushButton"))
         self.topSongsTableWidget.setSortingEnabled(True)
         self.topArtistsTableWidget.setSortingEnabled(True)
         self.songsPageButton.setText(_translate("MainWindow", "Top Songs"))
