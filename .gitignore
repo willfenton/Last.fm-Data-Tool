@@ -154,7 +154,7 @@ pip-selfcheck.json
 # End of https://www.gitignore.io/api/venv,python,visualstudiocode
 
 olddata/
-data/
+user_data/
 temp/
 apikey.txt
 API_Details.png

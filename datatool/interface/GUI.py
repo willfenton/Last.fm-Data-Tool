@@ -135,13 +135,13 @@ class App(QMainWindow):
         if self.current_user is None:
             QMessageBox.information(self, "No current user", "Select a user first.", QMessageBox.Ok)
             return False
-        num_albums = int(self.db.execute(f"SELECT COUNT(*) FROM (SELECT album_name, artist_name FROM [user-{self.current_user}] GROUP BY album_name, artist_name);").fetchone()[0])
+        num_albums = len(self.db.execute(f"SELECT image_path, album_name FROM [user-{self.current_user}] GROUP BY image_path, album_name;").fetchall())
         if num_albums < 1:
             QMessageBox.information(self, "Not enough albums", "Not enough albums. Have you updated data yet?", QMessageBox.Ok)
             return False
         max_size = min(floor(sqrt(num_albums)), 50)
         size, okPressed = QInputDialog.getInt(self, "Collage size","Size:", 10, 1, max_size, 1)
-        if okPressed and (size ** 2) <= num_albums:
+        if okPressed and size:
             generate_collage(self.db, self.current_user, size, size)
             QMessageBox.information(self, "Collage generated", "Collage successfully generated.", QMessageBox.Ok)
 
