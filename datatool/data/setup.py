@@ -89,6 +89,7 @@ def setup():
 
         config_parser["files"] = {
             "project_path": project_path,
+            "resources_path": "${files:project_path}/datatool/resources",
             "data_path": "${files:project_path}/user_data",
             "db_path": "${files:data_path}/database.db",
             "users_path": "${files:data_path}/users"

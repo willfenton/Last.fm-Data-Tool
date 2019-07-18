@@ -20,17 +20,17 @@
    <string>Last.fm Data Tool</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>logo.png</normaloff>logo.png</iconset>
+   <iconset resource="resources.qrc">
+    <normaloff>:/logo/logo.png</normaloff>:/logo/logo.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="1" column="3">
-     <layout class="QGridLayout" name="gridLayout_4" rowstretch="0,0" columnstretch="0,0,0">
+     <layout class="QGridLayout" name="gridLayout_4" rowstretch="0" columnstretch="0,0">
       <property name="spacing">
        <number>3</number>
       </property>
-      <item row="1" column="0" colspan="3">
+      <item row="0" column="0" colspan="2">
        <widget class="QStackedWidget" name="topTables">
         <property name="lineWidth">
          <number>1</number>
@@ -43,7 +43,7 @@
           <bool>false</bool>
          </property>
          <layout class="QGridLayout" name="gridLayout_2">
-          <item row="1" column="0" colspan="3">
+          <item row="1" column="0" colspan="2">
            <widget class="QTableWidget" name="topAlbumsTableWidget">
             <property name="sizeAdjustPolicy">
              <enum>QAbstractScrollArea::AdjustToContents</enum>
@@ -75,10 +75,10 @@
             <column/>
            </widget>
           </item>
-          <item row="2" column="0" colspan="3">
-           <widget class="QPushButton" name="pushButton">
+          <item row="0" column="0" colspan="2">
+           <widget class="QPushButton" name="limitButton">
             <property name="text">
-             <string>PushButton</string>
+             <string>Limit</string>
             </property>
            </widget>
           </item>
@@ -136,27 +136,6 @@
         </widget>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QPushButton" name="songsPageButton">
-        <property name="text">
-         <string>Top Songs</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QPushButton" name="albumsPageButton">
-        <property name="text">
-         <string>Top Albums</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="artistsPageButton">
-        <property name="text">
-         <string>Top Artists</string>
-        </property>
-       </widget>
-      </item>
      </layout>
     </item>
    </layout>
@@ -187,12 +166,21 @@
    </widget>
    <widget class="QMenu" name="menuData">
     <property name="title">
-     <string>Stats</string>
+     <string>Collage</string>
     </property>
     <addaction name="actionGenerate_Collage"/>
    </widget>
+   <widget class="QMenu" name="menuTables">
+    <property name="title">
+     <string>Tables</string>
+    </property>
+    <addaction name="actionTop_Albums"/>
+    <addaction name="actionTop_Tracks"/>
+    <addaction name="actionTop_Artists"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuUser"/>
+   <addaction name="menuTables"/>
    <addaction name="menuData"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -237,7 +225,24 @@
     <string>Generate Collage</string>
    </property>
   </action>
+  <action name="actionTop_Albums">
+   <property name="text">
+    <string>Top Albums</string>
+   </property>
+  </action>
+  <action name="actionTop_Tracks">
+   <property name="text">
+    <string>Top Tracks</string>
+   </property>
+  </action>
+  <action name="actionTop_Artists">
+   <property name="text">
+    <string>Top Artists</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

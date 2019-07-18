@@ -40,18 +40,19 @@ class App(QMainWindow):
 
         self.changePage(0)
 
-        # Connect the buttons.
-        self.ui.albumsPageButton.clicked.connect(partial(self.changePage, 0))
-        self.ui.songsPageButton.clicked.connect(partial(self.changePage, 1))
-        self.ui.artistsPageButton.clicked.connect(partial(self.changePage, 2))
-
         # Connect menubar actions
         self.ui.actionQuit.triggered.connect(self.closeApplication)
+        self.ui.actionTop_Albums.triggered.connect(partial(self.changePage, 0))
+        self.ui.actionTop_Tracks.triggered.connect(partial(self.changePage, 1))
+        self.ui.actionTop_Artists.triggered.connect(partial(self.changePage, 2))
         self.ui.actionAdd_User.triggered.connect(self.addUser)
         self.ui.actionChange_User.triggered.connect(self.changeUser)
         self.ui.actionDelete_User.triggered.connect(self.deleteUser)
         self.ui.actionUpdate_Data.triggered.connect(self.updateData)
         self.ui.actionGenerate_Collage.triggered.connect(self.generateCollage)
+
+        # Connect buttons
+        self.ui.limitButton.clicked.connect(self.changeLimit)
         
         # get config parser
         self.config_parser = get_config()
@@ -62,6 +63,12 @@ class App(QMainWindow):
 
         # get last.fm api key
         self.api_key = self.config_parser.get("settings", "api_key")
+
+        # set window icon
+        # logo_path = os.path.join(self.config_parser.get("files", "resources_path"), "logo.png")
+        # icon = QIcon()
+        # icon.addPixmap(QPixmap(logo_path), QIcon.Normal, QIcon.Off)
+        # self.ui.centralwidget.setWindowIcon(QIcon(logo_path))
 
         users = [row[0] for row in self.db.execute("SELECT DISTINCT username FROM Users ORDER BY timestamp ASC;")]
         if len(users) > 0:
@@ -77,9 +84,9 @@ class App(QMainWindow):
 
 
     def addUser(self):
-        username, ok = QInputDialog.getText(self, "Add user","Last.fm username:", QLineEdit.Normal, "")
+        username, okPressed = QInputDialog.getText(self, "Add user","Last.fm username:", QLineEdit.Normal, "")
         username = username.lower()
-        if ok and username != "":
+        if okPressed and username != "":
             if validate_username(username, self.api_key):
                 if add_user(self.db, username, self.api_key):
                     QMessageBox.information(self, "Success", f"Added user:\n{username}", QMessageBox.Ok)
@@ -95,8 +102,8 @@ class App(QMainWindow):
         users = [row[0] for row in self.db.execute("SELECT DISTINCT username FROM Users ORDER BY timestamp ASC;")]	
         if len(users) > 0:
             index = users.index(self.current_user) if self.current_user is not None else 0
-            username, ok = QInputDialog.getItem(self, "Change user", "List of users", users, index, False) 
-            if ok and username:
+            username, okPressed = QInputDialog.getItem(self, "Change user", "List of users", users, index, False) 
+            if okPressed and username:
                 self.current_user = username
                 QMessageBox.information(self, "Changed user", f"Current user:\n{self.current_user}", QMessageBox.Ok)
         else:
@@ -107,8 +114,8 @@ class App(QMainWindow):
     def deleteUser(self):
         users = [row[0] for row in self.db.execute("SELECT DISTINCT username FROM Users ORDER BY timestamp ASC;")]	
         if len(users) > 0:
-            username, ok = QInputDialog.getItem(self, "Delete user", "List of users", users, 0, False) 
-            if ok and username:
+            username, okPressed = QInputDialog.getItem(self, "Delete user", "List of users", users, 0, False) 
+            if okPressed and username:
                 if delete_user(self.db, username, self.api_key):
                     if self.current_user == username:
                         self.current_user = None
@@ -122,8 +129,8 @@ class App(QMainWindow):
     def updateData(self):
         users = [row[0] for row in self.db.execute("SELECT DISTINCT username FROM Users ORDER BY timestamp ASC;")]	
         if len(users) > 0:
-            username, ok = QInputDialog.getItem(self, "Update data", "List of users", users, 0, False) 
-            if ok and username:
+            username, okPressed = QInputDialog.getItem(self, "Update data", "List of users", users, 0, False) 
+            if okPressed and username:
                 update_data(self.db, username, self.api_key)
                 QMessageBox.information(self, "Updated data", f"Updated data for user:\n{username}", QMessageBox.Ok)
         else:
@@ -152,11 +159,17 @@ class App(QMainWindow):
         self.loadTopSongsTable()
 
     
-    def loadTopAlbumsTable(self):
+    def loadTopAlbumsTable(self, limit=2220):
         if self.current_user is None:
             return False
 
-        rows = self.db.execute(f"SELECT album_name, artist_name, COUNT(*), image_path FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path ORDER BY COUNT(*) DESC LIMIT 100;").fetchall()
+        if limit == 0:
+            self.ui.topAlbumsTableWidget.setRowCount(0)
+            return True
+
+        self.ui.topAlbumsTableWidget.reset()
+
+        rows = self.db.execute(f"SELECT album_name, artist_name, COUNT(*), image_path FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path ORDER BY COUNT(*) DESC LIMIT ?;", [limit]).fetchall()
         self.ui.topAlbumsTableWidget.setRowCount(len(rows))
 
         self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -179,7 +192,18 @@ class App(QMainWindow):
 
             self.ui.topAlbumsTableWidget.setCellWidget(i, 0, label)
 
+
+    def changeLimit(self):
+        if self.current_user is None:
+            return False
+        
+        num_albums = self.db.execute(f"SELECT COUNT(*) FROM (SELECT * FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path);").fetchone()[0]
+        limit, okPressed = QInputDialog.getInt(self, "Set Limit","Number of Albums:", 100, 0, 100000, 1)
+        if okPressed and limit:
+            limit = min(limit, num_albums)
+            self.loadTopAlbumsTable(limit)
     
+
     def loadTopArtistsTable(self):
         if self.current_user is None:
             return False
