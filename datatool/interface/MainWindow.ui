@@ -36,7 +36,7 @@
          <number>1</number>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="albumsPage">
          <property name="autoFillBackground">
@@ -76,7 +76,7 @@
            </widget>
           </item>
           <item row="0" column="0" colspan="2">
-           <widget class="QPushButton" name="limitButton">
+           <widget class="QPushButton" name="topAlbumsLimitButton">
             <property name="text">
              <string>Limit</string>
             </property>
@@ -86,7 +86,7 @@
         </widget>
         <widget class="QWidget" name="songsPage">
          <layout class="QGridLayout" name="gridLayout_3">
-          <item row="0" column="0">
+          <item row="1" column="0">
            <widget class="QTableWidget" name="topSongsTableWidget">
             <property name="sizeAdjustPolicy">
              <enum>QAbstractScrollArea::AdjustToContents</enum>
@@ -110,11 +110,18 @@
             <column/>
            </widget>
           </item>
+          <item row="0" column="0">
+           <widget class="QPushButton" name="topSongsLimitButton">
+            <property name="text">
+             <string>Limit</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
         <widget class="QWidget" name="artistsPage">
          <layout class="QGridLayout" name="gridLayout_5">
-          <item row="0" column="0">
+          <item row="1" column="0">
            <widget class="QTableWidget" name="topArtistsTableWidget">
             <property name="sizeAdjustPolicy">
              <enum>QAbstractScrollArea::AdjustToContents</enum>
@@ -130,6 +137,13 @@
             </attribute>
             <column/>
             <column/>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QPushButton" name="topArtistsLimitButton">
+            <property name="text">
+             <string>Limit</string>
+            </property>
            </widget>
           </item>
          </layout>

@@ -34,7 +34,6 @@ class App(QMainWindow):
         self.ui.setupUi(self)
 
         # setup top table headers
-        self.ui.topAlbumsTableWidget.setHorizontalHeaderLabels(["", "Album", "Artist", "Plays"])
         self.ui.topSongsTableWidget.setHorizontalHeaderLabels(["", "Song", "Artist", "Album", "Plays"])
         self.ui.topArtistsTableWidget.setHorizontalHeaderLabels(["Artist", "Plays"])
 
@@ -42,7 +41,7 @@ class App(QMainWindow):
 
         # Connect menubar actions
         self.ui.actionQuit.triggered.connect(self.closeApplication)
-        self.ui.actionTop_Albums.triggered.connect(partial(self.changePage, 0))
+        self.ui.actionTop_Albums.triggered.connect(partial(self.topAlbumsTableLoad, 100, 150))
         self.ui.actionTop_Tracks.triggered.connect(partial(self.changePage, 1))
         self.ui.actionTop_Artists.triggered.connect(partial(self.changePage, 2))
         self.ui.actionAdd_User.triggered.connect(self.addUser)
@@ -52,7 +51,7 @@ class App(QMainWindow):
         self.ui.actionGenerate_Collage.triggered.connect(self.generateCollage)
 
         # Connect buttons
-        self.ui.limitButton.clicked.connect(self.changeLimit)
+        self.ui.topAlbumsLimitButton.clicked.connect(self.topAlbumsChangeLimit)
         
         # get config parser
         self.config_parser = get_config()
@@ -154,57 +153,80 @@ class App(QMainWindow):
 
 
     def refreshTables(self):
-        self.loadTopAlbumsTable()
-        self.loadTopArtistsTable()
-        self.loadTopSongsTable()
+        self.topAlbumsTableLoad()
+        self.topArtistsTableLoad()
+        self.topSongsTableLoad()
 
     
-    def loadTopAlbumsTable(self, limit=2220):
-        if self.current_user is None:
-            return False
+    def topAlbumsTableLoad(self, limit=100, image_size=150):
+        # set column labels
+        self.ui.topAlbumsTableWidget.setHorizontalHeaderLabels(["", "Album", "Artist", "Plays"])
 
-        if limit == 0:
-            self.ui.topAlbumsTableWidget.setRowCount(0)
-            return True
-
-        self.ui.topAlbumsTableWidget.reset()
-
-        rows = self.db.execute(f"SELECT album_name, artist_name, COUNT(*), image_path FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path ORDER BY COUNT(*) DESC LIMIT ?;", [limit]).fetchall()
-        self.ui.topAlbumsTableWidget.setRowCount(len(rows))
-
+        # set column resize modes
         self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.ui.topAlbumsTableWidget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
 
+        # set row resize modes
         self.ui.topAlbumsTableWidget.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
+        # no user -> no data to display
+        if self.current_user is None:
+            return False
+
+        # clear the table
+        self.ui.topAlbumsTableWidget.clearContents()
+
+        # get the total number of albums (so we don't accidentally go over it)
+        num_albums = self.db.execute(f"SELECT COUNT(*) FROM (SELECT * FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path);").fetchone()[0]
+        limit = min(limit, num_albums)
+        
+        # no data to display
+        if num_albums < 1:
+            return False
+
+        # get the album data from the database
+        rows = self.db.execute(f"SELECT album_name, artist_name, COUNT(*), image_path, MIN(unix_timestamp) FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path ORDER BY COUNT(*) DESC LIMIT ?;", [limit]).fetchall()
+        row_count = len(rows)
+
+        # set correct number of rows
+        self.ui.topAlbumsTableWidget.setRowCount(row_count)
+        self.ui.topAlbumsLimitButton.setText(f"Set Limit ({row_count})")
+
+        # setting the data in the rows
         for i in range(len(rows)):
-            self.ui.topAlbumsTableWidget.setItem(i, 1, QTableWidgetItem(str(rows[i][0])))
-            self.ui.topAlbumsTableWidget.setItem(i, 2, QTableWidgetItem(str(rows[i][1])))
+            album_name, artist_name, count, image_path, first_timestamp = rows[i]
+
+            self.ui.topAlbumsTableWidget.setItem(i, 1, QTableWidgetItem(album_name))
+            self.ui.topAlbumsTableWidget.setItem(i, 2, QTableWidgetItem(artist_name))
+
+            # gotta do this so you can sort by count
             self.ui.topAlbumsTableWidget.setItem(i, 3, QTableWidgetItem(""))
-            self.ui.topAlbumsTableWidget.item(i, 3).setData(Qt.DisplayRole, int(rows[i][2]))
+            self.ui.topAlbumsTableWidget.item(i, 3).setData(Qt.DisplayRole, count)
 
-            pixmap = QPixmap(rows[i][3])
-
+            # create QPixmap for the album art, put it in a cell
             label = QLabel()
-            label.setPixmap(pixmap.scaled(QSize(150, 150)))
-
+            album_art = QPixmap(image_path).scaled(QSize(image_size, image_size))
+            label.setPixmap(album_art)
             self.ui.topAlbumsTableWidget.setCellWidget(i, 0, label)
 
+        # display the table
+        self.changePage(0)
 
-    def changeLimit(self):
+        return True
+
+
+    def topAlbumsChangeLimit(self):
         if self.current_user is None:
             return False
         
-        num_albums = self.db.execute(f"SELECT COUNT(*) FROM (SELECT * FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path);").fetchone()[0]
-        limit, okPressed = QInputDialog.getInt(self, "Set Limit","Number of Albums:", 100, 0, 100000, 1)
+        limit, okPressed = QInputDialog.getInt(self, "Set Limit","Number of Albums:", 100, 1, 100000, 1)
         if okPressed and limit:
-            limit = min(limit, num_albums)
-            self.loadTopAlbumsTable(limit)
+            self.topAlbumsTableLoad(limit)
     
 
-    def loadTopArtistsTable(self):
+    def topArtistsTableLoad(self):
         if self.current_user is None:
             return False
 
@@ -221,8 +243,19 @@ class App(QMainWindow):
             self.ui.topArtistsTableWidget.setItem(i, 1, QTableWidgetItem(""))
             self.ui.topArtistsTableWidget.item(i, 1).setData(Qt.DisplayRole, int(rows[i][1]))
 
-    
-    def loadTopSongsTable(self):
+
+    def topArtistsChangeLimit(self):
+        if self.current_user is None:
+            return False
+        
+        num_albums = self.db.execute(f"SELECT COUNT(*) FROM (SELECT * FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path);").fetchone()[0]
+        limit, okPressed = QInputDialog.getInt(self, "Set Limit","Number of Albums:", 100, 1, 100000, 1)
+        if okPressed and limit:
+            limit = min(limit, num_albums)
+            self.topArtistsTableLoad(limit)
+
+
+    def topSongsTableLoad(self):
         if self.current_user is None:
             return False
 
@@ -250,6 +283,17 @@ class App(QMainWindow):
             label.setPixmap(pixmap.scaled(QSize(150, 150)))
 
             self.ui.topSongsTableWidget.setCellWidget(i, 0, label)
+
+
+    def topSongsChangeLimit(self):
+        if self.current_user is None:
+            return False
+        
+        num_albums = self.db.execute(f"SELECT COUNT(*) FROM (SELECT * FROM 'user-{self.current_user}' GROUP BY album_name, artist_name, image_path);").fetchone()[0]
+        limit, okPressed = QInputDialog.getInt(self, "Set Limit","Number of Albums:", 100, 1, 100000, 1)
+        if okPressed and limit:
+            limit = min(limit, num_albums)
+            self.topSongsTableLoad(limit)
 
 
     # This is triggered when the user clicks the X / close button
