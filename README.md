@@ -1,2 +1,3 @@
 # Last.fm Data Tool
-TODO
+
+Visualization and analysis of your last.fm listening data.
